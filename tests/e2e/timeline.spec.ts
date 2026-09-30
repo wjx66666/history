@@ -12,38 +12,40 @@ test("keeps timeline labels separate across desktop, tablet, and mobile", async 
   const eventCount = new Set(dataset.placements.map((item) => item.event.event_id)).size;
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/?period=period_global_sample");
+    await page.goto("/?period=period_global_sample&view=timeline");
     await expect(page.getByRole("heading", { name: "全球历史首批真实样本" })).toBeVisible();
     await expect(page.getByLabel("当前范围概览").locator("strong").first()).toHaveText(String(eventCount));
-    await expect(page.getByLabel("事件年份比例刻度").locator("i")).toHaveCount(eventCount);
+    await expect(page.locator(".lane-marker")).toHaveCount(dataset.placements.length);
     const measurements = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       scroll: document.documentElement.scrollWidth,
-      lanes: [...document.querySelectorAll(".lane")].map((lane) => [...lane.querySelectorAll(".event-node")].map((node) => {
-        const rect = node.getBoundingClientRect();
-        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
-      })),
+      tags: [...document.querySelectorAll(".lane-tag")]
+        .filter((tag) => (tag as HTMLElement).offsetParent !== null)
+        .map((tag) => {
+          const rect = tag.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+        }),
     }));
     expect(measurements.scroll, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(measurements.viewport + 1);
-    for (const nodes of measurements.lanes) for (let i = 0; i < nodes.length; i += 1) for (let j = i + 1; j < nodes.length; j += 1) {
-      const a = nodes[i]!;
-      const b = nodes[j]!;
-      expect(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top, `overlap at ${width}px`).toBe(true);
+    for (let i = 0; i < measurements.tags.length; i += 1) for (let j = i + 1; j < measurements.tags.length; j += 1) {
+      const a = measurements.tags[i]!;
+      const b = measurements.tags[j]!;
+      expect(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top, `label overlap at ${width}px`).toBe(true);
     }
     await page.screenshot({ path: testInfo.outputPath(`timeline-${width}.png`), fullPage: true });
   }
 });
 
-test("drills into proportional timeline and renders a real sampled event in two lanes", async ({ page }, testInfo) => {
+test("drills into proportional timeline and focuses a real sampled event in two lanes", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
   await expect(page.getByText(/当前展示首批真实只读样本/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "全球历史首批真实样本" })).toBeVisible();
 
-  const periodRow = page.getByLabel("下一层时间段");
-  const childPeriod = page.getByRole("button", { name: /古典与先秦/ });
-  const [rowBox, childBox] = await Promise.all([periodRow.boundingBox(), childPeriod.boundingBox()]);
+  const periodNav = page.getByLabel("下一层时间段");
+  const childPeriod = periodNav.getByRole("button", { name: /古典与先秦/ });
+  const [rowBox, childBox] = await Promise.all([periodNav.boundingBox(), childPeriod.boundingBox()]);
   expect(rowBox).not.toBeNull();
   expect(childBox).not.toBeNull();
   expect(childBox!.x).toBeGreaterThanOrEqual(rowBox!.x);
@@ -52,24 +54,58 @@ test("drills into proportional timeline and renders a real sampled event in two 
   await childPeriod.click();
   await expect(page).toHaveURL(/period=period_ancient/);
   await expect(page.getByText("当前已是首批样本的最细预制层级")).toBeVisible();
-  await expect(page.locator(".lane")).toHaveCount(7);
+  const regions = await page.request.get("/api/timeline?period_id=period_ancient").then((response) => response.json()) as { regions: unknown[] };
+  await expect(page.locator(".lane")).toHaveCount(regions.regions.length);
 
-  const eventNodes = page.locator('[data-event-id="event_03np9s5j"]');
-  await expect(eventNodes).toHaveCount(2);
-  const hrefs = await eventNodes.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href")));
+  await page.getByRole("button", { name: "返回上一级" }).click();
+  await expect(page).toHaveURL(/period=period_global_sample/);
+  await expect(page.getByRole("button", { name: "返回上一级" })).toHaveCount(0);
+  await periodNav.getByRole("button", { name: /古典与先秦/ }).click();
+  await expect(page).toHaveURL(/period=period_ancient/);
+
+  const markers = page.locator('.lane-marker[data-event-id="event_03np9s5j"]');
+  await expect(markers).toHaveCount(2);
+
+  await markers.first().hover();
+  await expect(markers.nth(1)).toHaveClass(/is-active/);
+
+  const hrefs: string[] = [];
+  for (const marker of [markers.first(), markers.nth(1)]) {
+    await marker.click();
+    const detail = page.getByLabel("焦点事件").getByRole("link", { name: "打开详情" });
+    await expect(detail).toBeVisible();
+    hrefs.push((await detail.getAttribute("href")) ?? "");
+  }
   expect(new Set(hrefs).size).toBe(1);
+  expect(hrefs[0]).toContain("/event/event_03np9s5j");
 
-  for (const lane of await page.locator(".lane").filter({ has: page.locator('[data-event-id="event_03np9s5j"]') }).all()) {
-    const [labelBox, nodeBox] = await Promise.all([
+  for (const lane of await page.locator(".lane").filter({ has: page.locator('.lane-marker[data-event-id="event_03np9s5j"]') }).all()) {
+    const [labelBox, markerBox] = await Promise.all([
       lane.locator(".lane-label").boundingBox(),
-      lane.locator(".event-node").boundingBox(),
+      lane.locator('.lane-marker[data-event-id="event_03np9s5j"]').boundingBox(),
     ]);
     expect(labelBox).not.toBeNull();
-    expect(nodeBox).not.toBeNull();
-    expect(nodeBox!.x).toBeGreaterThanOrEqual(labelBox!.x + labelBox!.width);
+    expect(markerBox).not.toBeNull();
+    expect(markerBox!.x).toBeGreaterThanOrEqual(labelBox!.x + labelBox!.width - 1);
   }
 
   await page.screenshot({ path: testInfo.outputPath("timeline-desktop.png"), fullPage: true });
+});
+
+test("shows the expanded source-marked events across periods", async ({ page }) => {
+  const samples = [
+    ["period_ancient", "马拉松战役"],
+    ["period_early_medieval", "安史之乱"],
+    ["period_high_medieval", "蒙古侵略欧洲"],
+    ["period_modern", "普拉西战役"],
+  ];
+  for (const [period, title] of samples) {
+    await page.goto(`/?period=${period}&view=list`);
+    await expect(page.locator(".chrono-list").getByRole("link", { name: title })).toBeVisible();
+  }
+  await page.goto("/?period=period_modern&view=list");
+  await expect(page.locator(".chrono-list").getByRole("link", { name: "美国独立战争" })).toBeVisible();
+  await expect(page.getByLabel("时间线筛选").getByText("北美洲")).toBeVisible();
 });
 
 test("filters, searches, and restores timeline state after event navigation", async ({ page }, testInfo) => {
@@ -79,11 +115,15 @@ test("filters, searches, and restores timeline state after event navigation", as
   await expect(page.locator(".lane")).toHaveCount(1);
   await expect(page.locator(".lane-label").getByText("地中海")).toBeVisible();
 
+  await page.getByRole("button", { name: "筛选与搜索" }).click();
   await page.getByLabel("搜索事件或人物").fill("亚克兴");
-  await page.getByRole("button", { name: "搜索" }).click();
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
   await expect(page.locator(".search-results").getByText("亚克兴海战")).toBeVisible();
 
-  await page.locator(".event-node").click();
+  await page.locator('.lane-marker[data-event-id="event_03np9s5j"]').click();
+  const focusPanel = page.getByLabel("焦点事件");
+  await expect(focusPanel.getByRole("heading", { name: "亚克兴海战" })).toBeVisible();
+  await focusPanel.getByRole("link", { name: "打开详情" }).click();
   await expect(page).toHaveURL(/\/event\/event_03np9s5j/);
   await expect(page.getByRole("heading", { name: "亚克兴海战" })).toBeVisible();
   await expect(page.getByText("时间线位置").locator("..").getByText("4 条")).toBeVisible();
@@ -93,6 +133,73 @@ test("filters, searches, and restores timeline state after event navigation", as
   await expect(page).toHaveURL(/regions=reg_mediterranean/);
   await expect(page.locator(".lane")).toHaveCount(1);
   await page.screenshot({ path: testInfo.outputPath("timeline-filtered-1024.png"), fullPage: true });
+});
+
+test("narrows the matrix with the data-status filter and clears it", async ({ page }) => {
+  const response = await page.request.get("/api/timeline?period_id=period_global_sample");
+  const dataset = await response.json() as { placements: Array<{ event: { data_status: string } }> };
+  const insufficient = dataset.placements.filter((item) => item.event.data_status === "insufficient").length;
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/?period=period_global_sample&view=timeline");
+  await expect(page.locator(".lane-marker")).toHaveCount(dataset.placements.length);
+
+  await page.getByRole("checkbox", { name: /待核验/ }).click();
+  await expect(page).toHaveURL(/status=insufficient/);
+  await expect(page.locator(".lane-marker")).toHaveCount(insufficient);
+
+  await page.getByRole("button", { name: "清除全部筛选" }).click();
+  await expect(page.locator(".lane-marker")).toHaveCount(dataset.placements.length);
+});
+
+test("compares events up to the limit and persists the selection in the URL", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/?period=period_global_sample&view=list");
+  const list = page.locator(".chrono-list");
+  const panel = page.getByLabel("事件对比");
+
+  await list.getByRole("button", { name: "加入对比：秦灭六国之战" }).click();
+  await expect(panel.getByRole("heading", { name: /事件对比 1\/3/ })).toBeVisible();
+  await list.getByRole("button", { name: "加入对比：亚克兴海战" }).click();
+  await expect(panel.getByRole("heading", { name: /事件对比 2\/3/ })).toBeVisible();
+  await expect(panel.getByText("无共同地区")).toBeVisible();
+  await expect(panel.getByText("所选事件时间互不重叠")).toBeVisible();
+  await list.getByRole("button", { name: "加入对比：黑死病" }).click();
+  await expect(panel.getByRole("heading", { name: /事件对比 3\/3/ })).toBeVisible();
+  await expect(list.getByRole("button", { name: "加入对比：希吉拉" })).toBeDisabled();
+  await expect(page).toHaveURL(/compare=/);
+
+  await page.reload();
+  await expect(page.getByLabel("事件对比").getByRole("heading", { name: /事件对比 3\/3/ })).toBeVisible();
+
+  const restored = page.getByLabel("事件对比");
+  await restored.getByRole("button", { name: "移出对比：黑死病" }).click();
+  await expect(restored.getByRole("heading", { name: /事件对比 2\/3/ })).toBeVisible();
+  await restored.getByRole("button", { name: "清空" }).click();
+  await expect(page.getByLabel("范围覆盖摘要")).toBeVisible();
+});
+
+test("defaults mobile to the chronological list and docks focus in a bottom sheet", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?period=period_ancient");
+  const response = await page.request.get("/api/timeline?period_id=period_ancient");
+  const data = await response.json() as { placements: Array<{ event: { event_id: string } }> };
+
+  await expect(page.locator(".chrono-row")).toHaveCount(new Set(data.placements.map((item) => item.event.event_id)).size);
+  await expect(page.locator(".matrix")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "时间轴" }).click();
+  await expect(page.locator(".matrix")).toBeVisible();
+  await expect(page.locator(".lane-marker")).toHaveCount(data.placements.length);
+  const visibleTags = await page.evaluate(() =>
+    [...document.querySelectorAll(".lane-tag")].filter((tag) => (tag as HTMLElement).offsetParent !== null).length);
+  expect(visibleTags).toBe(0);
+
+  await page.locator('.lane-marker[data-event-id="event_03np9s5j"]').first().click();
+  await expect(page.getByLabel("焦点事件")).toBeVisible();
+  await page.getByRole("button", { name: "收起面板" }).click();
+  await expect(page.getByLabel("焦点事件")).toBeHidden();
+  await expect(page.getByRole("button", { name: /展开/ })).toBeVisible();
 });
 
 test("states that the first real-data sample is not global completion", async ({ page }) => {

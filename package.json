@@ -21,6 +21,7 @@
     "data:import-fixture": "tsx src/builder/import-fixture.ts",
     "data:import-p5-sample": "tsx src/builder/import-p5-sample.ts",
     "data:import-p5-b13": "tsx src/builder/import-p5-b13.ts",
+    "data:import-p5-expansion": "tsx src/builder/import-p5-expansion.ts",
     "data:rebuild-index": "tsx src/builder/rebuild-index.ts",
     "build": "npm run clean && tsc -b && vite build",
     "start": "node scripts/start-production.mjs"
