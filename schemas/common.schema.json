@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://global-history-timeline.local/schemas/common.schema.json",
+  "$defs": {
+    "localId": {
+      "type": "string",
+      "pattern": "^(period|event|place|reg|rel|evid|art|img)_[A-Za-z0-9][A-Za-z0-9_-]*$"
+    },
+    "temporalValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["calendar", "era", "year", "precision", "approx", "source_text", "year_ordinal", "sort_tuple"],
+      "properties": {
+        "calendar": { "type": "string", "pattern": "^(gregorian|julian|unknown|other:[A-Za-z0-9._-]+)$" },
+        "era": { "enum": ["BCE", "CE"] },
+        "year": { "type": "integer", "minimum": 1 },
+        "month": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "day": { "type": "integer", "minimum": 1, "maximum": 31 },
+        "precision": { "enum": ["day", "month", "year", "decade", "century", "unknown"] },
+        "approx": { "type": "boolean" },
+        "source_text": { "type": "string", "minLength": 1 },
+        "year_ordinal": { "type": "integer" },
+        "sort_tuple": {
+          "type": "array",
+          "prefixItems": [{ "type": "integer" }, { "type": "integer" }, { "type": "integer" }],
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "precision": { "const": "day" } }, "required": ["precision"] }, "then": { "required": ["month", "day"], "properties": { "month": { "type": "integer" }, "day": { "type": "integer" } } } },
+        { "if": { "properties": { "precision": { "const": "month" } }, "required": ["precision"] }, "then": { "required": ["month"], "properties": { "month": { "type": "integer" } } } },
+        { "if": { "required": ["day"] }, "then": { "required": ["month"], "properties": { "month": { "type": "integer" } } } }
+      ]
+    },
+    "timeSpan": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "at"],
+          "properties": {
+            "kind": { "const": "point" },
+            "at": { "$ref": "#/$defs/temporalValue" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "start", "end_exclusive"],
+          "properties": {
+            "kind": { "const": "range" },
+            "start": { "$ref": "#/$defs/temporalValue" },
+            "end_exclusive": { "$ref": "#/$defs/temporalValue" }
+          }
+        }
+      ]
+    }
+  }
+}

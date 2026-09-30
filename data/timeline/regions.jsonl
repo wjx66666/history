@@ -1,0 +1,7 @@
+{"region_id":"reg_east_asia","name_zh":"东亚","region_type":"macro_region","child_policy":"manual"}
+{"region_id":"reg_europe","name_zh":"欧洲","region_type":"continent","child_policy":"manual"}
+{"region_id":"reg_mediterranean","name_zh":"地中海","region_type":"cultural_area","child_policy":"manual"}
+{"region_id":"reg_west_asia","name_zh":"西亚","region_type":"macro_region","child_policy":"manual"}
+{"region_id":"reg_south_asia","name_zh":"南亚","region_type":"macro_region","child_policy":"manual"}
+{"region_id":"reg_africa","name_zh":"非洲","region_type":"continent","child_policy":"manual"}
+{"region_id":"reg_mesoamerica","name_zh":"中美洲与玛雅地区","region_type":"cultural_area","child_policy":"manual"}

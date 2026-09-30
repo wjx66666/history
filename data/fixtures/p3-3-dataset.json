@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "regions": [
+    { "region_id": "reg_fixture_east", "name_zh": "契约东部线", "region_type": "cultural_area", "child_policy": "manual" },
+    { "region_id": "reg_fixture_west", "name_zh": "契约西部线", "region_type": "cultural_area", "child_policy": "manual" }
+  ],
+  "periods": [
+    {
+      "period_id": "period_fixture_root",
+      "title_zh": "契约跨公元根段",
+      "time_span": {
+        "kind": "range",
+        "start": { "calendar": "gregorian", "era": "BCE", "year": 2, "precision": "year", "approx": false, "source_text": "公元前2年", "year_ordinal": -1, "sort_tuple": [-1, 0, 0] },
+        "end_exclusive": { "calendar": "gregorian", "era": "CE", "year": 4, "precision": "year", "approx": false, "source_text": "公元4年（不含）", "year_ordinal": 4, "sort_tuple": [4, 0, 0] }
+      },
+      "scale": "era",
+      "child_ids": ["period_fixture_child"],
+      "expandable": true,
+      "coverage_status": "built"
+    },
+    {
+      "period_id": "period_fixture_child",
+      "parent_period_id": "period_fixture_root",
+      "title_zh": "契约跨公元子段",
+      "time_span": {
+        "kind": "range",
+        "start": { "calendar": "gregorian", "era": "BCE", "year": 1, "precision": "year", "approx": false, "source_text": "公元前1年", "year_ordinal": 0, "sort_tuple": [0, 0, 0] },
+        "end_exclusive": { "calendar": "gregorian", "era": "CE", "year": 3, "precision": "year", "approx": false, "source_text": "公元3年（不含）", "year_ordinal": 3, "sort_tuple": [3, 0, 0] }
+      },
+      "scale": "custom",
+      "child_ids": [],
+      "expandable": false,
+      "coverage_status": "built"
+    },
+    {
+      "period_id": "period_fixture_checked_empty",
+      "title_zh": "契约已查空段",
+      "time_span": {
+        "kind": "range",
+        "start": { "calendar": "gregorian", "era": "CE", "year": 10, "precision": "year", "approx": false, "source_text": "公元10年", "year_ordinal": 10, "sort_tuple": [10, 0, 0] },
+        "end_exclusive": { "calendar": "gregorian", "era": "CE", "year": 20, "precision": "year", "approx": false, "source_text": "公元20年（不含）", "year_ordinal": 20, "sort_tuple": [20, 0, 0] }
+      },
+      "scale": "decade",
+      "child_ids": [],
+      "expandable": false,
+      "coverage_status": "checked_empty",
+      "evidence_scope": { "query": "P3-3 contract fixture; no external query", "queried_at": "2026-09-30T00:00:00Z", "sources": ["fixture:p3-3"], "result_count": 0 }
+    },
+    {
+      "period_id": "period_fixture_unbuilt",
+      "title_zh": "契约未构建段",
+      "time_span": {
+        "kind": "range",
+        "start": { "calendar": "gregorian", "era": "CE", "year": 20, "precision": "year", "approx": false, "source_text": "公元20年", "year_ordinal": 20, "sort_tuple": [20, 0, 0] },
+        "end_exclusive": { "calendar": "gregorian", "era": "CE", "year": 30, "precision": "year", "approx": false, "source_text": "公元30年（不含）", "year_ordinal": 30, "sort_tuple": [30, 0, 0] }
+      },
+      "scale": "decade",
+      "child_ids": [],
+      "expandable": false,
+      "coverage_status": "unbuilt"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event_fixture_shared",
+      "title_zh": "契约人物相关跨线共享事件",
+      "event_kind": "point_event",
+      "time_span": { "kind": "point", "at": { "calendar": "gregorian", "era": "CE", "year": 1, "precision": "year", "approx": false, "source_text": "公元1年", "year_ordinal": 1, "sort_tuple": [1, 0, 0] } },
+      "region_refs": ["reg_fixture_east", "reg_fixture_west"],
+      "data_status": "provisional"
+    }
+  ],
+  "placements": [
+    { "placement_id": "place_fixture_east", "event_id": "event_fixture_shared", "line_id": "reg_fixture_east", "period_id": "period_fixture_child", "display_weight": "primary", "order_index": 0, "role": "primary" },
+    { "placement_id": "place_fixture_west", "event_id": "event_fixture_shared", "line_id": "reg_fixture_west", "period_id": "period_fixture_child", "display_weight": "secondary", "order_index": 1, "role": "context" }
+  ]
+}

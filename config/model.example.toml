@@ -1,0 +1,7 @@
+# api_key_env names an environment variable; it is never the key itself.
+provider = ""
+base_url = ""
+model = ""
+api_key_env = "HISTORY_TIMELINE_API_KEY"
+timeout_ms = 60000
+max_retries = 2

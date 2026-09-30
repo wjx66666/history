@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://global-history-timeline.local/schemas/dataset.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "regions", "periods", "events", "placements"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "regions": { "type": "array", "items": { "$ref": "entities.schema.json#/$defs/region" } },
+    "periods": { "type": "array", "items": { "$ref": "entities.schema.json#/$defs/period" } },
+    "events": { "type": "array", "items": { "$ref": "entities.schema.json#/$defs/event" } },
+    "placements": { "type": "array", "items": { "$ref": "entities.schema.json#/$defs/placement" } }
+  }
+}

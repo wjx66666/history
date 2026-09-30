@@ -1,0 +1,9 @@
+# Copy required values to config/local.toml. Do not put credentials here.
+user_agent = "global-history-timeline/0.1 (local research)"
+request_timeout_ms = 15000
+max_redirects = 3
+
+[[source]]
+id = "wikidata"
+base_url = "https://www.wikidata.org"
+enabled = false

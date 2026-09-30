@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://global-history-timeline.local/schemas/entities.schema.json",
+  "$defs": {
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["region_id", "name_zh", "region_type", "child_policy"],
+      "properties": {
+        "region_id": { "type": "string", "pattern": "^reg_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "name_zh": { "type": "string", "minLength": 1 },
+        "region_type": { "enum": ["continent", "macro_region", "country", "historical_state", "civilization", "cultural_area", "place"] },
+        "parent_id": { "type": "string", "pattern": "^reg_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "child_policy": { "enum": ["include", "separate", "manual"] }
+      }
+    },
+    "evidenceScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query", "queried_at", "sources", "result_count"],
+      "properties": {
+        "query": { "type": "string", "minLength": 1 },
+        "queried_at": { "type": "string", "format": "date-time" },
+        "sources": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "result_count": { "const": 0 }
+      }
+    },
+    "boundaryException": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "evidence_ids"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "evidence_ids": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^evid_[A-Za-z0-9][A-Za-z0-9_-]*$" } }
+      }
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["period_id", "title_zh", "time_span", "scale", "child_ids", "expandable", "coverage_status"],
+      "properties": {
+        "period_id": { "type": "string", "pattern": "^period_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "parent_period_id": { "type": "string", "pattern": "^period_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "title_zh": { "type": "string", "minLength": 1 },
+        "time_span": { "$ref": "common.schema.json#/$defs/timeSpan" },
+        "scale": { "enum": ["era", "century", "decade", "custom"] },
+        "child_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^period_[A-Za-z0-9][A-Za-z0-9_-]*$" } },
+        "expandable": { "type": "boolean" },
+        "coverage_status": { "enum": ["built", "checked_empty", "unbuilt", "failed"] },
+        "evidence_scope": { "$ref": "#/$defs/evidenceScope" },
+        "boundary_exception": { "$ref": "#/$defs/boundaryException" }
+      },
+      "allOf": [
+        { "if": { "properties": { "expandable": { "const": true } }, "required": ["expandable"] }, "then": { "properties": { "child_ids": { "type": "array", "minItems": 1 } } } },
+        { "if": { "properties": { "coverage_status": { "const": "checked_empty" } }, "required": ["coverage_status"] }, "then": { "required": ["evidence_scope"], "properties": { "evidence_scope": { "$ref": "#/$defs/evidenceScope" } } } }
+      ]
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "title_zh", "event_kind", "time_span", "region_refs", "data_status"],
+      "properties": {
+        "event_id": { "type": "string", "pattern": "^event_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "title_zh": { "type": "string", "minLength": 1 },
+        "event_kind": { "enum": ["point_event", "interval_event", "war", "process", "disaster", "policy", "discovery", "other"] },
+        "time_span": { "$ref": "common.schema.json#/$defs/timeSpan" },
+        "region_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^reg_[A-Za-z0-9][A-Za-z0-9_-]*$" } },
+        "data_status": { "enum": ["verified", "provisional", "disputed", "insufficient", "rejected"] }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["placement_id", "event_id", "line_id", "period_id", "display_weight", "order_index", "role"],
+      "properties": {
+        "placement_id": { "type": "string", "pattern": "^place_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "event_id": { "type": "string", "pattern": "^event_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "line_id": { "type": "string", "pattern": "^reg_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "period_id": { "type": "string", "pattern": "^period_[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "display_weight": { "enum": ["primary", "secondary", "background"] },
+        "order_index": { "type": "integer" },
+        "role": { "enum": ["primary", "secondary", "context", "commemoration"] }
+      }
+    }
+  }
+}

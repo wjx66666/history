@@ -1,0 +1,51 @@
+{
+  "name": "global-history-timeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.21.0 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "dev": "concurrently --kill-others --names api,web --prefix-colors blue,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "tsx watch src/server/index.ts",
+    "dev:web": "vite",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "start:e2e": "npm run build && node scripts/start-e2e.mjs",
+    "test:smoke": "node scripts/smoke-production.mjs",
+    "data:import-fixture": "tsx src/builder/import-fixture.ts",
+    "data:import-p5-sample": "tsx src/builder/import-p5-sample.ts",
+    "data:import-p5-b13": "tsx src/builder/import-p5-b13.ts",
+    "data:rebuild-index": "tsx src/builder/rebuild-index.ts",
+    "build": "npm run clean && tsc -b && vite build",
+    "start": "node scripts/start-production.mjs"
+  },
+  "dependencies": {
+    "@fastify/static": "10.1.5",
+    "ajv": "8.20.0",
+    "d3-scale": "4.0.2",
+    "fastify": "5.12.5",
+    "lucide-react": "0.544.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "7.18.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/d3-scale": "4.0.9",
+    "@types/node": "26.6.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "concurrently": "10.0.5",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}
